@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-import pickle
 
 M = np.arange(2, 62)
 N = 28 * 28
@@ -29,6 +28,7 @@ one = np.array(one)
 zero = np.array(zero)
 
 for i in range(len(M)):
+
     phi = np.random.randn(M[i], N)
 
     z_mean = np.mean(phi @ zero.T, 1)
@@ -54,4 +54,4 @@ plt.xlabel("No of measurements (M)")
 plt.ylabel("distance")
 plt.title("variation of distance between manifold centers with M")
 plt.legend()
-plt.savefig("manifold_dists.png")
+plt.savefig("manifold_dists1.png")

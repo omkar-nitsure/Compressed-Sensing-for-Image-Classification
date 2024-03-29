@@ -21,8 +21,6 @@ kmeans_model = pickle.load(open("kmeans.sav", "rb"))
 
 y_model = []
 
-# labs = kmeans_model.labels_
-
 for i in range(len(repr)):
     min = np.inf
     min_id = 0
