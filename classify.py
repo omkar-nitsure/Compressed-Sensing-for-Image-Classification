@@ -5,23 +5,9 @@ import torch
 import torch.nn as nn
 
 
-class Projection(nn.Module):
-    def __init__(self, M, N):
-        super(Projection, self).__init__()
-
-        self.phi = nn.Parameter(torch.randn(M, N))
-
-    def forward(self, X):
-        return (self.phi) @ X
-
-    def get_phi(self):
-        return self.phi
-
-
 N = 28 * 28
 
 path = "Dataset/MNIST/train"
-
 imgs = os.listdir(path)
 
 three = []
@@ -29,26 +15,39 @@ five = []
 eight = []
 
 for i in range(len(imgs)):
-    if imgs[i].split("_")[0] == "three":
+    if imgs[i].split("_")[0] == "zero":
         three.append(plt.imread(path + "/" + imgs[i]).flatten())
-    elif imgs[i].split("_")[0] == "five":
+    elif imgs[i].split("_")[0] == "one":
         five.append(plt.imread(path + "/" + imgs[i]).flatten())
-    elif imgs[i].split("_")[0] == "eight":
+    elif imgs[i].split("_")[0] == "four":
         eight.append(plt.imread(path + "/" + imgs[i]).flatten())
 
 three = np.array(three)
 five = np.array(five)
 eight = np.array(eight)
 
-M = [60]
+M = np.arange(0, 61, 2)
 
 acc = []
 
-model = torch.load("models/phi.pt")
+path = "Dataset/MNIST/test"
+imgs = os.listdir(path)
 
-phi = model.get_phi()
+x = []
+y = []
 
-phi = phi.detach().numpy()
+for i in range(len(imgs)):
+    if imgs[i].split("_")[0] == "zero":
+        x.append(plt.imread(path + "/" + imgs[i]).flatten())
+        y.append(0)
+    elif imgs[i].split("_")[0] == "one":
+        x.append(plt.imread(path + "/" + imgs[i]).flatten())
+        y.append(1)
+    elif imgs[i].split("_")[0] == "four":
+        x.append(plt.imread(path + "/" + imgs[i]).flatten())
+        y.append(2)
+
+x = np.array(x)
 
 for i in range(len(M)):
 
@@ -58,28 +57,8 @@ for i in range(len(M)):
     f_mean = np.mean(phi @ five.T, 1)
     e_mean = np.mean(phi @ eight.T, 1)
 
-    path = "Dataset/MNIST/test"
-
-    imgs = os.listdir(path)
-
-    x = []
-    y = []
-
-    for i in range(len(imgs)):
-        if imgs[i].split("_")[0] == "three":
-            x.append(plt.imread(path + "/" + imgs[i]).flatten())
-            y.append(0)
-        elif imgs[i].split("_")[0] == "five":
-            x.append(plt.imread(path + "/" + imgs[i]).flatten())
-            y.append(1)
-        elif imgs[i].split("_")[0] == "eight":
-            x.append(plt.imread(path + "/" + imgs[i]).flatten())
-            y.append(2)
-
-    x = np.array(x)
-
+    
     measurements = (phi @ x.T).T
-
     preds = []
 
     for i in range(len(x)):
@@ -113,5 +92,5 @@ plt.title("Classification accuracy Vs No of measurements")
 plt.savefig("classify_accuracy.png")
 
 # for 60 measurements we get the following accuracies for classification
-# accuracy for three classes namely Three, Five, Eight is 77.99
-# accuracy for three classes namely Zero, One, Four is 96.29
+# accuracy for three classes namely Three, Five, Eight is 81.92
+# accuracy for three classes namely Zero, One, Four is 97.03

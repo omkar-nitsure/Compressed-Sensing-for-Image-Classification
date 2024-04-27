@@ -1,78 +1,96 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+import cv2 as cv
+
 import torch
 import torch.nn as nn
 import torch.utils.data as data
 import torch.optim as optim
+import torch.nn.functional as F
 
+# constants
+M = 60
+N = 28*28
+n_classes = 10
+sigma = 10
 
-class Projection(nn.Module):
-    def __init__(self, M, N):
-        super(Projection, self).__init__()
+# dictionary used for mapping the class labels
+map = {
+    "zero":0,
+    "one":1,
+    "two":2,
+    "three":3,
+    "four":4,
+    "five":5,
+    "six":6,
+    "seven":7,
+    "eight":8,
+    "nine":9
+}
 
-        self.phi = nn.Parameter(torch.randn(M, N))
+def exp_proj(x, clusters):
+    Kc = torch.zeros(len(x), n_classes)
 
-    def forward(self, X):
-        return (self.phi) @ X
+    for i in range(len(x)):
+        diff = x[i] - clusters
+        Kc[i] = (- diff**2).mean(1).div(2 * sigma**2).exp()
 
-    def get_phi(self):
-        return self.phi
+    return Kc.float()
+    
 
-
+# computing first set of cluster centers
 path = "Dataset/MNIST/train"
-
 imgs = os.listdir(path)
 
-three = []
-five = []
-eight = []
 
-for i in range(len(imgs)):
+# sampling matrix
+phi = torch.randn(M, N)
 
-    if imgs[i].split("_")[0] == "three":
-        three.append(np.array(plt.imread(path + "/" + imgs[i]).flatten()))
-    elif imgs[i].split("_")[0] == "five":
-        five.append(np.array(plt.imread(path + "/" + imgs[i]).flatten()))
-    elif imgs[i].split("_")[0] == "eight":
-        eight.append(np.array(plt.imread(path + "/" + imgs[i]).flatten()))
 
-three = torch.tensor(np.array(three)).float()
-five = torch.tensor(np.array(five)).float()
-eight = torch.tensor(np.array(eight)).float()
+images = []
+starts = []
 
-three = three[0 : five.shape[0]]
-eight = eight[0 : five.shape[0]]
 
-train = data.TensorDataset(three, five, eight)
+for i in range(n_classes):
+    id = 0
+    for j in range(len(imgs)):
+        if(id == 0):
+            starts.append(len(images))
+            id = 1
+        if map[imgs[j].split("_")[0]] == i:
+            images.append(np.array(plt.imread(path + "/" + imgs[j])).flatten())
+
+images = torch.tensor(np.array(images)).float()
+
+
+
+clusters = torch.zeros((n_classes, M)).float()
+for i in range(n_classes - 1):
+    clusters[i,:] = torch.mean((phi @ images[starts[i]:starts[i + 1]].T).T, axis=0)
+
+clusters[9,:] = torch.mean((phi @ images[starts[9]:len(images)].T).T, axis=0)
+
+
+y = torch.zeros(len(images))
+for i in range(n_classes - 1):
+    y[starts[i]:starts[i + 1]] = i
+y[starts[9]:len(images)] = 9
+
+y = F.one_hot(y.to(torch.int64), num_classes=10).float()
+
+
+
+train = data.TensorDataset(images, y)
 train = data.DataLoader(train, batch_size=32, shuffle=True)
 
-M = 60
-N = 28 * 28
+optimizer = optim.Adam([phi], lr=0.01)
+n_epochs = 5
 
 
-def loss_fn(t_mean, f_mean, e_mean):
-    loss = (
-        M
-        * N
-        / (
-            torch.sum((t_mean - f_mean) ** 2)
-            + torch.sum((t_mean - e_mean) ** 2)
-            + torch.sum((e_mean - f_mean) ** 2)
-        )
-    )
+def train_model(phi, optimizer, train, clusters):
 
-    return loss
-
-
-model = Projection(M, N)
-n_epochs = 3
-optimizer = optim.SGD(model.parameters(), lr=0.01)
-
-
-def train_model(model, optimizer, train):
-
-    model.train(True)
+    phi.requires_grad_()
 
     for epoch in range(n_epochs):
 
@@ -80,17 +98,10 @@ def train_model(model, optimizer, train):
 
         for _, x in enumerate(train):
 
-            t, f, e = x[0], x[1], x[2]
+            x_, y = x[0], x[1]
 
-            t_out = model(t.T).T
-            f_out = model(f.T).T
-            e_out = model(e.T).T
+            loss = F.binary_cross_entropy(exp_proj((phi @ x_.T).T, clusters), y)
 
-            t_mean = torch.mean(t_out, 0)
-            f_mean = torch.mean(f_out, 0)
-            e_mean = torch.mean(e_out, 0)
-
-            loss = loss_fn(t_mean, f_mean, e_mean)
 
             optimizer.zero_grad()
             loss.backward()
@@ -100,7 +111,16 @@ def train_model(model, optimizer, train):
 
         print(epoch, "->", np.round(e_loss, 2))
 
+        # recomputing clusters after every epoch
+        with torch.no_grad():
+            clusters = torch.zeros((n_classes, M)).float()
+            for i in range(n_classes - 1):
+                clusters[i,:] = torch.mean((phi @ images[starts[i]:starts[i + 1]].T).T, axis=0)
 
-train_model(model, optimizer, train)
+            clusters[9,:] = torch.mean((phi @ images[starts[9]:len(images)].T).T, axis=0)
 
-torch.save(model, "models/phi.pt")
+
+train_model(phi, optimizer, train, clusters)
+
+with torch.no_grad():
+    torch.save(phi, "models/phi_correct.pt")

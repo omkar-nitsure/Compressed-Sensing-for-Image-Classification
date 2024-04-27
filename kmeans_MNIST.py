@@ -1,8 +1,7 @@
 import numpy as np
 from sklearn.cluster import KMeans
 import pickle
-import os
-import statistics
+
 
 repr = np.load("MNIST_test.npz")
 
