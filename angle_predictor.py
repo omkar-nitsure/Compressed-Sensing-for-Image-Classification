@@ -29,6 +29,23 @@ def rotate_img(image, angle):
 train_path = "Dataset/MNIST/train"
 train_imgs = os.listdir(train_path)
 
+path_train = "Dataset/MNIST/train"
+imgs_train = os.listdir(path_train)
+n_classes = 10
+starts = []
+images = []
+
+for i in range(n_classes):
+    id = 0
+    for j in range(len(imgs_train)):
+        if(id == 0):
+            starts.append(len(images))
+            id = 1
+        if map[imgs_train[j].split("_")[0]] == i:
+            images.append(np.array(plt.imread(path_train + "/" + imgs_train[j])).flatten())
+
+images = np.array(images)
+
 test_path = "Dataset/MNIST/test"
 test_imgs = os.listdir(test_path)
 
@@ -40,27 +57,25 @@ for i in range(len(test_imgs)):
     y.append(map[test_imgs[i].split("_")[0]])
 
 
-M = np.arange(10, 400, 10)
-n_classes = 10
+M = [100]
+
 N = 28 * 28
 accuracy_rand = []
 acc_learn = []
 
 for l in range(len(M)):
         
-    centers = np.zeros((n_classes, M[l]))
-    counts = np.zeros(n_classes)
+
 
     phi = np.random.randn(M[l], N)
 
 
-    for i in range(len(train_imgs)):
-        counts[map[train_imgs[i].split("_")[0]]] += 1
-        centers[map[train_imgs[i].split("_")[0]],:] += phi @ plt.imread(train_path + "/" + train_imgs[i]).flatten()
+    centers = np.zeros((n_classes, M[l]))
+    for i in range(n_classes - 1):
+        centers[i,:] = np.mean((phi @ images[starts[i]:starts[i + 1]].T).T, axis=0)
 
+    centers[9,:] = np.mean((phi @ images[starts[9]:len(images)].T).T, axis=0)
 
-    for i in range(10):
-        centers[i,:] = centers[i,:]/counts[i]
 
 
     thetas = np.arange(5, 360, 10)
@@ -74,6 +89,7 @@ for l in range(len(M)):
 
         for j in range(len(thetas)):
             r_img = rotate_img(x[i], -thetas[j]).flatten()
+
             meas = phi @ r_img
 
 
@@ -83,7 +99,6 @@ for l in range(len(M)):
                     min_angle = thetas[j]
                     pred = k
         preds.append(pred)
-
 
     c = 0
     for i in range(len(preds)):
@@ -100,7 +115,7 @@ for l in range(len(M)):
     centers = np.zeros((n_classes, M[l]))
     counts = np.zeros(n_classes)
 
-    phi = torch.load("models/phi_batch_32/phi_" + str(M[l]) + ".pt", map_location=torch.device('cpu'))
+    phi = torch.load("models/phi_correct_150.pt")
     phi.requires_grad = False
     phi = phi.detach().numpy()
 
@@ -145,6 +160,8 @@ for l in range(len(M)):
     acc_learn.append(100*c/len(preds))
     print(l, "th iteration done")
 
+print(accuracy_rand)
+print(acc_learn)
 accuracy_rand = np.array(accuracy_rand)
 acc_learn = np.array(acc_learn)
 np.save("values_32/acc_rand.npy", accuracy_rand)

@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 
 # constants
-M = 60
+M = 100
 N = 28 * 28
 n_classes = 10
 
@@ -28,7 +28,7 @@ path = "Dataset/MNIST/train"
 imgs = os.listdir(path)
 
 # uncomment this part if you want to use learnt sampling matrix
-phi = torch.load("models/phi_correct.pt")
+phi = torch.load("models/phi_correct_150.pt")
 phi.requires_grad = False
 phi = phi.detach().numpy()
 

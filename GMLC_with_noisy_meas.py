@@ -17,6 +17,13 @@ map = {
     "nine":9
 }
 
+
+M = [100]
+sigma = [10, 20]
+n_classes = 10
+N = 28 * 28
+accuracy = np.zeros((len(sigma), len(M)))
+
 def rotate_img(image, angle):
 
     image_center = tuple(np.array(image.shape[1::-1]) / 2)
@@ -24,8 +31,22 @@ def rotate_img(image, angle):
     result = cv.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv.INTER_LINEAR)
     return result
 
-train_path = "Dataset/MNIST/train"
-train_imgs = os.listdir(train_path)
+path_train = "Dataset/MNIST/train"
+imgs_train = os.listdir(path_train)
+
+starts = []
+images = []
+
+for i in range(n_classes):
+    id = 0
+    for j in range(len(imgs_train)):
+        if(id == 0):
+            starts.append(len(images))
+            id = 1
+        if map[imgs_train[j].split("_")[0]] == i:
+            images.append(np.array(plt.imread(path_train + "/" + imgs_train[j])).flatten())
+
+images = np.array(images)
 
 test_path = "Dataset/MNIST/test"
 test_imgs = os.listdir(test_path)
@@ -38,12 +59,6 @@ for i in range(len(test_imgs)):
     y.append(map[test_imgs[i].split("_")[0]])
 
 
-M = np.arange(10, 400, 10)
-sigma = [0, 5, 10, 20, 50]
-n_classes = 10
-N = 28 * 28
-accuracy = np.zeros((len(sigma), len(M)))
-
 for l in range(len(M)):
 
     print("M ->", M[l])
@@ -51,20 +66,17 @@ for l in range(len(M)):
     for s in range(len(sigma)):
             
         centers = np.zeros((n_classes, M[l]))
-        counts = np.zeros(n_classes)
 
-        phi = torch.load("models/phi_32/phi_" + str(M[l]) + ".pt", map_location=torch.device('cpu'))
+        phi = torch.load("/home/ojas/AIP_Project/models/phi_correct_150.pt")
         phi.requires_grad = False
         phi = phi.detach().numpy()
         noise = np.random.normal(0, sigma[s], (M[l],))
 
-        for i in range(len(train_imgs)):
-            counts[map[train_imgs[i].split("_")[0]]] += 1
-            centers[map[train_imgs[i].split("_")[0]],:] += phi @ plt.imread(train_path + "/" + train_imgs[i]).flatten()
+        centers = np.zeros((n_classes, M[l]))
+        for i in range(n_classes - 1):
+            centers[i,:] = np.mean((phi @ images[starts[i]:starts[i + 1]].T).T, axis=0)
 
-
-        for i in range(10):
-            centers[i,:] = centers[i,:]/counts[i]
+        centers[9,:] = np.mean((phi @ images[starts[9]:len(images)].T).T, axis=0)
 
 
         thetas = np.arange(5, 360, 10)
@@ -96,12 +108,14 @@ for l in range(len(M)):
         # print("classification accuracy ->", 100*c/len(preds))
         accuracy[s, l] = 100*c/len(preds)
 
+print(accuracy)
+
 
 np.save("values_32/GMLC_with_noisy_meas.npy", accuracy)
-plt.plot(M, accuracy[0, :], label="sigma = 0")
-plt.plot(M, accuracy[1, :], label="sigma = 0.02")
-plt.plot(M, accuracy[2, :], label="sigma = 0.05")
-plt.plot(M, accuracy[3, :], label="sigma = 0.1")
+plt.plot(M, accuracy[0, :], label="sigma = 10")
+plt.plot(M, accuracy[1, :], label="sigma = 20")
+# plt.plot(M, accuracy[2, :], label="sigma = 0.05")
+# plt.plot(M, accuracy[3, :], label="sigma = 0.1")
 plt.legend()   
 plt.xlabel("No. of meansurements")
 plt.ylabel("Classification accuracy")
