@@ -10,7 +10,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 # constants
-M = [100]
+M = np.arange(10, 400, 10)
 N = 28*28
 n_classes = 10
 sigma = 10
@@ -44,10 +44,6 @@ path = "Dataset/MNIST/train"
 imgs = os.listdir(path)
 
 
-# sampling matrix
-
-
-
 images = []
 starts = []
 
@@ -72,12 +68,10 @@ y[starts[9]:len(images)] = 9
 y = F.one_hot(y.to(torch.int64), num_classes=10).float()
 
 
-
 train = data.TensorDataset(images, y)
 train = data.DataLoader(train, batch_size=32, shuffle=True)
 
 n_epochs = 5
-
 
 
 def train_model(phi, optimizer, train, clusters, M):
@@ -111,6 +105,8 @@ def train_model(phi, optimizer, train, clusters, M):
 
             clusters[9,:] = torch.mean((phi @ images[starts[9]:len(images)].T).T, axis=0)
 
+
+
 for j in range(len(M)):
 
     phi = torch.randn(M[j], N)
@@ -126,4 +122,4 @@ for j in range(len(M)):
     train_model(phi, optimizer, train, clusters, M[j])
 
     with torch.no_grad():
-        torch.save(phi, "models/phi_correct_150.pt")
+        torch.save(phi, "models/learnt_phi/phi_" + str(M[j]) + ".pt")

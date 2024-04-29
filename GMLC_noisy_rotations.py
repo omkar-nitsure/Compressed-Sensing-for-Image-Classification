@@ -18,8 +18,8 @@ map = {
 }
 
 
-M = [100]
-sigma = [10, 20]
+M = np.arange(10, 400, 20)
+sigma = [0, 10, 20, 30, 40]
 n_classes = 10
 N = 28 * 28
 accuracy = np.zeros((len(sigma), len(M)))
@@ -58,7 +58,6 @@ for i in range(len(test_imgs)):
     x.append(rotate_img(plt.imread(test_path + "/" + test_imgs[i]), np.random.randint(0, 360)))
     y.append(map[test_imgs[i].split("_")[0]])
 
-
 for l in range(len(M)):
 
     print("M ->", M[l])
@@ -67,7 +66,7 @@ for l in range(len(M)):
             
         centers = np.zeros((n_classes, M[l]))
 
-        phi = torch.load("/home/ojas/AIP_Project/models/phi_correct_150.pt")
+        phi = torch.load("models/learnt_phi/phi_" + str(M[l]) + ".pt")
         phi.requires_grad = False
         phi = phi.detach().numpy()
         noise = np.random.normal(0, sigma[s], (M[l],))
@@ -105,19 +104,18 @@ for l in range(len(M)):
             if(preds[i] == y[i]):
                 c += 1
 
-        # print("classification accuracy ->", 100*c/len(preds))
         accuracy[s, l] = 100*c/len(preds)
 
 print(accuracy)
 
-
-np.save("values_32/GMLC_with_noisy_meas.npy", accuracy)
-plt.plot(M, accuracy[0, :], label="sigma = 10")
-plt.plot(M, accuracy[1, :], label="sigma = 20")
-# plt.plot(M, accuracy[2, :], label="sigma = 0.05")
-# plt.plot(M, accuracy[3, :], label="sigma = 0.1")
+np.save("plots/GMLC_learnt.npy", accuracy)
+plt.plot(M, accuracy[0, :], label="sigma = 0")
+plt.plot(M, accuracy[1, :], label="sigma = 10")
+plt.plot(M, accuracy[2, :], label="sigma = 20")
+plt.plot(M, accuracy[3, :], label="sigma = 30")
+plt.plot(M, accuracy[4, :], label="sigma = 40")
 plt.legend()   
-plt.xlabel("No. of meansurements")
+plt.xlabel("No. of measurements")
 plt.ylabel("Classification accuracy")
 plt.title("Variation of classification Accuracy with noise")
-plt.savefig("plots/plots_32/acc_vsnoisy_learnt.png")
+plt.savefig("plots/GMLC_acc_learnt.png")

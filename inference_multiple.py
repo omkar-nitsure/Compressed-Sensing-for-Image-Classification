@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 
 # constants
-M = [100]
+M = np.arange(10, 400, 20)
 N = 28 * 28
 n_classes = 10
 
@@ -23,17 +23,12 @@ map = {
     "nine":9
 }
 
+acc_learnt = []
+acc_rand = []
+
 # extracting training data for cluster computation
 path_train = "Dataset/MNIST/train"
 imgs_train = os.listdir(path_train)
-
-# uncomment this part if you want to use learnt sampling matrix
-phi = torch.load("models/phi_correct_150.pt")
-phi.requires_grad = False
-phi = phi.detach().numpy()
-
-# uncomment this if you want random gaussian sampling matrix
-# phi = np.random.randn(M, N)
 
 
 # testing
@@ -65,7 +60,12 @@ for i in range(n_classes):
 
 images = np.array(images)
 
+
 for j in range(len(M)):
+
+    phi = torch.load("models/learnt_phi/phi_" + str(M[j]) + ".pt")
+    phi.requires_grad = False
+    phi = phi.detach().numpy()
     clusters = np.zeros((n_classes, M[j]))
     for i in range(n_classes - 1):
         clusters[i,:] = np.mean((phi @ images[starts[i]:starts[i + 1]].T).T, axis=0)
@@ -80,4 +80,42 @@ for j in range(len(M)):
         if(y_pred == test_label[i]):
             c += 1
 
+    acc_learnt.append(100*c/len(test_image))
+
     print("with learnt sampling matrix, classification accuracy is ->", 100*c/len(test_image))
+
+
+
+
+for j in range(len(M)):
+
+    phi = np.random.randn(M[j], N)
+    clusters = np.zeros((n_classes, M[j]))
+    for i in range(n_classes - 1):
+        clusters[i,:] = np.mean((phi @ images[starts[i]:starts[i + 1]].T).T, axis=0)
+
+    clusters[9,:] = np.mean((phi @ images[starts[9]:len(images)].T).T, axis=0)
+
+
+    c = 0
+    for i in range(len(test_image)):
+        x = phi @ test_image[i]
+        y_pred = np.argmin(np.linalg.norm(x - clusters, axis=1))
+        if(y_pred == test_label[i]):
+            c += 1
+
+    acc_rand.append(100*c/len(test_image))
+
+    print("with random sampling matrix, classification accuracy is ->", 100*c/len(test_image))
+
+np.save("plots/acc_rand.npy", np.array(acc_rand))
+np.save("plots/acc_learnt.npy", np.array(acc_learnt))
+
+plt.plot(M, acc_rand, label="random phi")
+plt.plot(M, acc_learnt, label="learnt phi")
+plt.ylabel("classification accuracy")
+plt.xlabel("No of measurements")
+plt.legend()
+plt.title("Classification accuracy Vs No of measurements")
+plt.savefig("plots/classification_acc.png")
+
