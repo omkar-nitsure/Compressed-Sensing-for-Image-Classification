@@ -27,8 +27,18 @@ def rotate_img(image, angle):
 train_path = "Dataset/MNIST/train"
 train_imgs = os.listdir(train_path)
 
+test_path = "Dataset/MNIST/test"
+test_imgs = os.listdir(test_path)
 
-M = [10, 15, 25, 50, 60, 75, 100, 125, 150]
+x = []
+y = []
+
+for i in range(len(test_imgs)):
+    x.append(rotate_img(plt.imread(test_path + "/" + test_imgs[i]), np.random.randint(0, 360)))
+    y.append(map[test_imgs[i].split("_")[0]])
+
+
+M = np.arange(10, 400, 10)
 sigma = [0, 5, 10, 20, 50]
 n_classes = 10
 N = 28 * 28
@@ -36,12 +46,16 @@ accuracy = np.zeros((len(sigma), len(M)))
 
 for l in range(len(M)):
 
+    print("M ->", M[l])
+
     for s in range(len(sigma)):
             
         centers = np.zeros((n_classes, M[l]))
         counts = np.zeros(n_classes)
 
-        phi = np.random.randn(M[l], N)
+        phi = torch.load("models/phi_32/phi_" + str(M[l]) + ".pt", map_location=torch.device('cpu'))
+        phi.requires_grad = False
+        phi = phi.detach().numpy()
         noise = np.random.normal(0, sigma[s], (M[l],))
 
         for i in range(len(train_imgs)):
@@ -53,16 +67,6 @@ for l in range(len(M)):
             centers[i,:] = centers[i,:]/counts[i]
 
 
-        test_path = "Dataset/MNIST/test"
-        test_imgs = os.listdir(test_path)
-
-        x = []
-        y = []
-
-        for i in range(len(test_imgs)):
-            x.append(rotate_img(plt.imread(test_path + "/" + test_imgs[i]), np.random.randint(0, 360)))
-            y.append(map[test_imgs[i].split("_")[0]])
-
         thetas = np.arange(5, 360, 10)
 
         preds = []
@@ -73,8 +77,8 @@ for l in range(len(M)):
             min_angle = np.inf
 
             for j in range(len(thetas)):
-                r_img = rotate_img(x[i], -thetas[j])
-                meas = phi @ r_img.flatten() + noise
+                r_img = rotate_img(x[i], -thetas[j]).flatten()
+                meas = (phi @ r_img) + noise
 
                 for k in range(len(centers)):
                     if(np.linalg.norm(meas - centers[k,:]) < min_dist):
@@ -92,7 +96,8 @@ for l in range(len(M)):
         # print("classification accuracy ->", 100*c/len(preds))
         accuracy[s, l] = 100*c/len(preds)
 
-np.save("GMLC_with_noisy_meas.npy", accuracy)
+
+np.save("values_32/GMLC_with_noisy_meas.npy", accuracy)
 plt.plot(M, accuracy[0, :], label="sigma = 0")
 plt.plot(M, accuracy[1, :], label="sigma = 0.02")
 plt.plot(M, accuracy[2, :], label="sigma = 0.05")
@@ -100,8 +105,5 @@ plt.plot(M, accuracy[3, :], label="sigma = 0.1")
 plt.legend()   
 plt.xlabel("No. of meansurements")
 plt.ylabel("Classification accuracy")
-plt.title("Classification accuracy vs No. of noisy measurements")
-plt.show()
-
-
-
+plt.title("Variation of classification Accuracy with noise")
+plt.savefig("plots/plots_32/acc_vsnoisy_learnt.png")
