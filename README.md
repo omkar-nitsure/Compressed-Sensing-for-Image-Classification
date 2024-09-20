@@ -1,11 +1,14 @@
 # Image Classification using Compressed Sensing
 
-## Team Members - 
-### Omkar Nitsure - https://github.com/omkarnitsureiitb
-### Ojas Karanjkar - https://github.com/Ojas1905
+### Team Members - 
+1. Omkar Nitsure
+2. Ojas Karanjkar
 
 ## Overview
-In this project, we do image classification on the **MNIST** dataset with **10** classes using compressive measurements. This involves sampling the image using a **sensing matrix** and then using the cluster centers computed on the training data to execute a kmeans-based algorithm to do final classification and achieve a classification accuracy of **75%**. We further learn this **sensing matrix** on the training data with the objective of maximizing the relative distance between the different cluster centers. This further increases the accuracy to **87%**. Then we add **random gaussian noise** and rotate the images by **random** angles in **0-360**. We implement the **GMLC** (smashed filter based) algorithm to first compute the most likely angle followed by the final classification. This gives an accuracy of about **70%**. We then imposed **sparsity** on the **DCT** coefficients by retaining only the **top k** values and were able to achieve an accuracy of . We then generated a video with **digits** in it and tested if our algorithm is able to classify in real time or not and it was able to classify the test images in a video with **30 fps** with an accuracy of **84%**.
+Compressed Sensing is a technique used in image acquisition where specific hardware cameras are used to capture images in a compressed manner. The captured images might be as small as 10\% of the original image size. This can be helpful for low-resource compute environments as it requires less power and storage. The compressed measurements can also be used for image classification using some image processing technique or small machine learning models which will further reduce the compute overhead required for larger vision models using full images.
+In this work, we perform image classification on the MNIST dataset with 10 classes using compressive measurements. This involves sampling the image using a sensing matrix and then using the cluster centers computed on the training data to execute a kmeans-based algorithm for final classification. We achieve a classification accuracy of 75\% using this traditional approach. We further learn the sensing matrix on the training data with the objective of maximizing the relative distance between different cluster centers which increases the accuracy to 87\%. We also implement the GMLC (smashed filter-based) algorithm to first compute the most likely angle followed by the final classification which gives an impressive accuracy of 70\%. We conclude by generating a video with MNIST digits and testing our algorithm on real-classification and it was able to classify the test images in a video of 30 fps with an accuracy of 84\%.
+
+Index terms - Compressed Sensing, Smashed Filter, kmeans , GMLC, sensing matrix, deep learning
 
 ## DCT coefficients and analysis
 
@@ -113,4 +116,8 @@ We created a video of **12** randomly sampled images from the test split at a ra
 
 1. Random sensing matrix - 9/12 correct predictions
 2. Learnt sensing matrix - 10/12 correct predictions
+
+## References
+
+[1] M. A. Davenport, M. F. Duarte, M. B. Wakin, J. N. Laska, D. Takhar, K. F. Kelly, and R. G. Baraniuk, “The smashed filter for compressive classification and target recognition,” in Computational imaging V, vol. 6498, pp. 142–153, SPIE, 2007.
 
